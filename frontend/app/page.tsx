@@ -45,6 +45,7 @@ export default function Home() {
             alt="Greenview Heights"
             fill
             className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-r from-gray-950/90 via-gray-900/75 to-gray-900/40" />
@@ -135,10 +136,10 @@ export default function Home() {
             {/* Stacked images */}
             <div className="relative h-[480px]">
               <div className="absolute top-0 left-0 w-[72%] h-[68%] rounded-3xl overflow-hidden shadow-2xl">
-                <Image src="/society_pool.jpg" alt="Swimming Pool" fill className="object-cover" />
+                <Image src="/society_pool.jpg" alt="Swimming Pool" fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
               </div>
               <div className="absolute bottom-0 right-0 w-[60%] h-[52%] rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
-                <Image src="/society_sports.jpg" alt="Sports Courts" fill className="object-cover" />
+                <Image src="/society_sports.jpg" alt="Sports Courts" fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
               </div>
               <div className="absolute top-[36%] left-[38%] bg-teal-600 text-white rounded-2xl px-5 py-4 shadow-xl text-center z-10">
                 <p className="font-black text-3xl">420+</p>

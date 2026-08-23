@@ -84,7 +84,7 @@ export default function AboutPage() {
       {/* ── HERO ───────────────────────────────────────────── */}
       <section className="relative h-[55vh] min-h-[420px] flex items-center pt-20">
         <div className="absolute inset-0">
-          <Image src="/society_hero.jpg" alt="Greenview Heights" fill className="object-cover" priority />
+          <Image src="/society_hero.jpg" alt="Greenview Heights" fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw" priority />
           <div className="absolute inset-0 bg-gradient-to-b from-gray-900/70 via-gray-900/60 to-gray-900/80" />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
@@ -147,7 +147,7 @@ export default function AboutPage() {
                 <div key={amenity.name} className={`grid lg:grid-cols-2 gap-12 items-center ${!isEven ? 'lg:flex-row-reverse' : ''}`}>
                   {/* Image */}
                   <div className={`relative h-80 rounded-3xl overflow-hidden shadow-2xl ${!isEven ? 'lg:order-2' : ''}`}>
-                    <Image src={amenity.image} alt={amenity.name} fill className="object-cover" />
+                    <Image src={amenity.image} alt={amenity.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                     <div className={`absolute inset-0 bg-gradient-to-br ${amenity.color} opacity-20`} />
                     <div className="absolute top-4 left-4">
                       <span className={`inline-block ${amenity.light} ${amenity.text} text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider`}>{amenity.category}</span>
