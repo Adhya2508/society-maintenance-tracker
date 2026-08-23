@@ -299,50 +299,189 @@ Deployment: Vercel (Frontend) · Render Docker Web Service (Backend + DB)
 
 ---
 
-## 🛠️ Local Development Setup
+## 🛠️ Setup Guide
 
-### Run with Docker (Fastest Path)
+### Option 1 — Docker Compose (Recommended, Zero Config)
+
+Runs the entire stack (frontend + backend + PostgreSQL) locally with a single command.
+
 ```bash
 git clone https://github.com/Adhya2508/society-maintenance-tracker.git
 cd society-maintenance-tracker
+```
+
+Copy the environment file and fill in your credentials (see [Environment Variables](#-environment-variables) below):
+```bash
+cp .env.example backend/.env
+```
+
+Start all services:
+```bash
 docker-compose up --build
 ```
-| Service | URL |
+
+| Service | Local URL |
 |---|---|
-| **Frontend** | http://localhost:3000 |
-| **Backend API** | http://localhost:8002 |
-| **API Docs** | http://localhost:8002/api/docs |
+| 🌐 **Frontend** | http://localhost:3000 |
+| ⚡ **Backend API** | http://localhost:8002 |
+| 📖 **API Docs (Swagger)** | http://localhost:8002/api/docs |
 
-### Manual Setup
+The database is automatically migrated and seeded with demo data on first run.
 
-#### Backend
+---
+
+### Option 2 — Manual Setup
+
+#### Step 1 — Backend
+
 ```bash
 cd backend
-python -m venv venv && source venv/bin/activate
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+
+# Install Python dependencies
 pip install -r requirements.txt
+
+# Copy and configure environment variables
+cp ../.env.example .env
+# Edit .env and fill in your DATABASE_URL, SECRET_KEY, Supabase, and Resend keys
+
+# Run database migrations
 alembic upgrade head
-python seed.py          # Seeds demo users, complaints, notices
+
+# Seed demo data (creates admin + sample residents, complaints, notices)
+python seed.py
+
+# Start the API server
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-#### Frontend
+#### Step 2 — Frontend
+
 ```bash
 cd frontend
-cp .env.example .env.local
-# Set NEXT_PUBLIC_API_URL=http://localhost:8000
-npm install && npm run dev
+
+# Install Node dependencies
+npm install
+
+# Configure backend URL
+echo 'NEXT_PUBLIC_API_URL=http://localhost:8000' > .env.local
+
+# Start Next.js dev server
+npm run dev
 ```
 
-### Environment Variables (Backend)
+Frontend will be available at **http://localhost:3000**.
+
+---
+
+## ⚙️ Environment Variables
+
+All variables are defined in `.env.example` at the project root. Copy it to `backend/.env` and fill in real values.
+
+### Database
+
+| Variable | Description | Example |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (psycopg2 driver) | `postgresql+psycopg2://user:pass@host/db` |
+
+> **Render Tip:** Use the **Internal Database URL** from your Render PostgreSQL dashboard (not the external one) to avoid connection timeouts.
+
+### Security
+
+| Variable | Description | How to Generate |
+|---|---|---|
+| `SECRET_KEY` | JWT signing key (HS256) | `python -c "import secrets; print(secrets.token_hex(32))"` |
+
+### Supabase Storage
+
+Create a project at [supabase.com](https://supabase.com) → Storage → New Bucket → set to **Private**.
+
+| Variable | Description |
+|---|---|
+| `SUPABASE_URL` | Your project URL from Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (NOT anon key) from Settings → API |
+| `SUPABASE_STORAGE_BUCKET` | Name of the private bucket (e.g. `complaint-photos`) |
+
+### Email (Resend)
+
+Sign up at [resend.com](https://resend.com) → API Keys → Create Key.
+
+| Variable | Description |
+|---|---|
+| `RESEND_API_KEY` | Your Resend API key (`re_xxxx...`) |
+| `EMAIL_FROM` | Verified sender address or `onboarding@resend.dev` for testing |
+
+### Frontend
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Full URL of the backend API (`https://your-api.onrender.com` or `http://localhost:8000`) |
+
+**Complete `.env.example`:**
+
 ```env
-DATABASE_URL=postgresql+psycopg2://user:pass@host:5432/db
-SECRET_KEY=your-jwt-secret-key
-RESEND_API_KEY=re_xxxx
-EMAIL_FROM=onboarding@resend.dev
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
+# ── DATABASE ──────────────────────────────────────────────────
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/society_db
+
+# ── SECURITY ──────────────────────────────────────────────────
+SECRET_KEY=your-super-secret-jwt-key-change-this-in-production
+
+# ── SUPABASE STORAGE ──────────────────────────────────────────
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 SUPABASE_STORAGE_BUCKET=complaint-photos
+
+# ── EMAIL (Resend) ─────────────────────────────────────────────
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMAIL_FROM=onboarding@resend.dev
+
+# ── FRONTEND ───────────────────────────────────────────────────
+NEXT_PUBLIC_API_URL=https://your-backend.onrender.com
 ```
+
+---
+
+## 📖 API Documentation
+
+Full interactive API documentation is auto-generated by FastAPI and available at:
+
+> 🔗 **[https://society-maintenance-tracker-8y4e.onrender.com/api/docs](https://society-maintenance-tracker-8y4e.onrender.com/api/docs)**  
+> (Locally: http://localhost:8002/api/docs)
+
+All endpoints are organized by module:
+
+### Auth Module (`/api/auth`)
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | None | Register a new resident account |
+| `POST` | `/api/auth/login` | None | Authenticate and receive a JWT token |
+| `GET` | `/api/auth/me` | Bearer | Get current authenticated user profile |
+
+### Complaints Module (`/api/complaints`)
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/complaints` | Resident | Submit a new complaint (multipart with optional photo) |
+| `GET` | `/api/complaints` | Both | List complaints — residents see own, admins see all |
+| `GET` | `/api/complaints/{id}` | Both | Full detail: complaint + history timeline + signed photo URL |
+| `PATCH` | `/api/complaints/{id}` | Admin | Update status, priority, or leave a resolution comment |
+
+### Notices Module (`/api/notices`)
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/notices` | Both | List all notices (important ones first) |
+| `POST` | `/api/notices` | Admin | Create a new society notice |
+| `DELETE` | `/api/notices/{id}` | Admin | Delete a notice |
+
+### Admin & Settings
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/admin/dashboard` | Admin | Aggregated metrics: totals, categories, overdue count |
+| `GET` | `/api/settings` | Admin | View current SLA configuration |
+| `PUT` | `/api/settings` | Admin | Update `overdue_days` SLA threshold |
+| `GET` | `/health` | None | Service liveness check |
 
 ---
 
@@ -350,24 +489,46 @@ SUPABASE_STORAGE_BUCKET=complaint-photos
 
 ```
 society-maintenance-tracker/
-├── Video walkthrough and screenshots/   # App screenshots & architecture diagram
+│
+├── Video walkthrough and screenshots/   # UI screenshots & architecture diagram
+│
 ├── backend/
 │   ├── app/
-│   │   ├── core/           # Config, security (JWT/Argon2)
-│   │   ├── database/       # SQLAlchemy session + all models
-│   │   ├── infrastructure/ # Supabase storage, Resend email
-│   │   └── modules/        # auth, complaints, notices, dashboard, settings
-│   ├── alembic/            # Database migration scripts
-│   ├── Dockerfile
-│   ├── seed.py             # Auto-seeds demo data if DB is empty
+│   │   ├── core/
+│   │   │   ├── config.py       # Pydantic settings loader (reads .env)
+│   │   │   └── security.py     # JWT creation/decoding, Argon2 hashing
+│   │   ├── database/
+│   │   │   ├── models/         # SQLAlchemy ORM models (user, complaint, notice...)
+│   │   │   └── session.py      # DB engine + SessionLocal factory
+│   │   ├── infrastructure/
+│   │   │   ├── storage.py      # Supabase upload + signed URL generation
+│   │   │   └── email.py        # Resend email dispatch (background thread)
+│   │   └── modules/
+│   │       ├── auth/           # register, login, JWT dependency
+│   │       ├── complaints/     # CRUD, status transitions, photo handling
+│   │       ├── notices/        # Notice CRUD
+│   │       ├── dashboard/      # Aggregated admin stats
+│   │       └── settings/       # SLA overdue_days config
+│   ├── alembic/                # Auto-generated migration scripts
+│   ├── Dockerfile              # Container definition (migrate + seed + serve)
+│   ├── seed.py                 # Demo data seeder (auto-runs if DB empty)
 │   └── requirements.txt
+│
 ├── frontend/
-│   ├── app/                # Next.js App Router pages
-│   ├── components/         # Reusable UI components
-│   ├── lib/                # Axios API client + auth helpers
-│   └── public/             # Static images
-├── docker-compose.yml
-├── SYSTEM_DESIGN.md        # 800-word technical architecture doc
+│   ├── app/                    # Next.js App Router pages
+│   │   ├── page.tsx            # Landing page
+│   │   ├── login/              # Role-based sign in
+│   │   ├── admin/              # Admin dashboard + complaint management
+│   │   └── resident/           # Resident portal + complaint filing
+│   ├── components/             # Shared UI components
+│   ├── lib/
+│   │   ├── api.ts              # Axios instance with JWT interceptor
+│   │   └── auth.tsx            # Auth context + protected route wrapper
+│   └── public/                 # Static images (amenity photos)
+│
+├── .env.example                # Template for all required environment variables
+├── docker-compose.yml          # Multi-service local dev orchestration
+├── SYSTEM_DESIGN.md            # 800-word technical system design doc
 └── README.md
 ```
 
