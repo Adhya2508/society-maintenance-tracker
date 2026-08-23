@@ -26,7 +26,8 @@ The backend is built with **FastAPI** running on Uvicorn, with logically isolate
 ## 2. Complaint Lifecycle & Status History Design
 
 Complaints follow a strict forward-moving finite state machine:
-$$\text{OPEN} \longrightarrow \text{IN\_PROGRESS} \longrightarrow \text{RESOLVED}$$
+
+> `OPEN` → `IN_PROGRESS` → `RESOLVED`
 
 ```
 +-----------+      Admin Claim / Triage      +---------------+      Resolution Verified      +------------+
@@ -44,7 +45,10 @@ $$\text{OPEN} \longrightarrow \text{IN\_PROGRESS} \longrightarrow \text{RESOLVED
 Complaints are categorized into three operational priorities: `LOW`, `MEDIUM`, and `HIGH`. 
 
 * **Dynamic SLA Computation**: Rather than relying on fragile polling workers, overdue states are derived dynamically at query time:
-  $$\text{Overdue} \iff \text{status} \neq \text{RESOLVED} \quad \land \quad (\text{NOW}() - \text{created\_at}) > \text{SLA Threshold}$$
+
+  ```
+  status != RESOLVED  AND  (NOW() - created_at) > SLA Threshold days
+  ```
 * **Configurable SLA**: The threshold is stored in `system_settings.overdue_days` (default 7 days) and is adjustable via the Admin Settings portal without redeployment.
 * **Triage Prioritization**: Open complaints exceeding SLA thresholds are flagged with urgent badges (`OVERDUE`) and elevated in sorting order across admin queues.
 

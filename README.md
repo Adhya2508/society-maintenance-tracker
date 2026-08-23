@@ -104,6 +104,187 @@ When a complaint's status changes, the resident automatically receives a transac
 
 ---
 
+## 🧩 What This Solves
+
+Residential societies struggle with:
+- **No tracking** — complaints reported verbally get lost immediately.
+- **No accountability** — nobody knows who owns a complaint or what stage it's at.
+- **No history** — once resolved, there is zero record of what happened or who fixed it.
+- **No transparency** — residents have no visibility into their complaint's status.
+- **No communication** — residents are never notified when their issue is acted on.
+
+**This system solves all five.** Every complaint has a structured lifecycle, an immutable audit trail, a priority rating, an overdue alarm, and automated email notifications at every state change.
+
+---
+
+## 🔄 Complaint Lifecycle & Status History Design
+
+Each complaint progresses through a **strict, one-way state machine** enforced at the API layer:
+
+```
+  Resident Submits
+       │
+       ▼
+   ┌──────┐    Admin Triages     ┌─────────────┐    Admin Resolves    ┌──────────┐
+   │ OPEN │ ──────────────────► │ IN_PROGRESS │ ──────────────────► │ RESOLVED │
+   └──────┘                     └─────────────┘                      └──────────┘
+```
+
+**How it works:**
+- **Residents** submit a complaint with title, category, priority, description, and an optional photo.
+- **Admins** view all complaints across all residents in a unified filterable table. They transition status and leave resolution comments.
+- **Backward transitions are blocked** at the service layer — a resolved complaint cannot be accidentally reopened.
+
+**Audit History (`complaint_history` table):**
+
+Every status change is **atomically written** to an append-only `complaint_history` table:
+
+```
+Complaint #42 Timeline:
+────────────────────────────────────────────────────────────────
+[2024-03-15 10:32]  OPEN        → IN_PROGRESS  "Plumber dispatched"
+[2024-03-15 14:55]  IN_PROGRESS → RESOLVED     "Pipe joint replaced, OK"
+────────────────────────────────────────────────────────────────
+```
+
+Both residents and admins see the full audit trail on the complaint detail page — building full accountability and trust.
+
+---
+
+## ⏰ Overdue Detection & Priority Handling
+
+**Priority Levels** (set by resident at submission time):
+
+| Priority | Typical Use Case |
+|---|---|
+| `LOW` | Minor cosmetic issues (paint peeling, broken bulb) |
+| `MEDIUM` | Service interruptions (water timer, elevator noise) |
+| `HIGH` | Safety-critical issues (gas leak, electrical fault, flooding) |
+
+**SLA Overdue Engine** — computed dynamically at query time, no background scheduler needed:
+
+```sql
+-- A complaint is flagged OVERDUE when:
+status != 'RESOLVED'
+AND (NOW() - created_at) > INTERVAL '{overdue_days} days'
+```
+
+- `overdue_days` is stored in `system_settings` and editable from the Admin Settings page — no redeployment needed.
+- Overdue complaints are **highlighted in red** across all admin views.
+- The dashboard stats card shows a live overdue count refreshed on every load.
+- High-priority overdue complaints are surfaced first in the admin complaint queue.
+
+---
+
+## 🖼️ Photo Upload & Notice Board Design
+
+### Complaint Photo Upload
+
+Photos are stored in **Supabase private cloud storage** — never as PostgreSQL BLOBs (which would destroy DB performance):
+
+1. Resident attaches a photo (JPEG/PNG, max 5MB) when submitting a complaint.
+2. FastAPI validates MIME type and enforces the file size limit before any upload.
+3. The file is stored at path `complaints/{complaint_id}/{uuid}.jpg` in a **private** Supabase S3 bucket.
+4. Only the **relative path string** is saved in PostgreSQL — no binary data in the DB.
+5. On complaint retrieval, the backend generates a **1-hour signed URL** via Supabase SDK. Expired links auto-deny access.
+
+![Supabase Complaint Images](./Video%20walkthrough%20and%20screenshots/supabase%20complaint%20images.png)
+
+**Rollback Safety:** If the PostgreSQL transaction fails after a Supabase upload, FastAPI catches the exception, rolls back the DB change, and fires a Supabase cleanup call to delete the orphaned file — preventing storage bloat.
+
+### Notice Board
+
+![Notice Board](./Video%20walkthrough%20and%20screenshots/notice%20board.png)
+
+- Admins post society-wide announcements with title, content, and an `is_important` flag.
+- **Important notices** are pinned to the top of the feed with a high-visibility banner across all resident dashboards.
+- Normal notices display in reverse-chronological order below pinned items.
+- Residents see the full notice board directly on their home dashboard feed.
+
+---
+
+## 📊 Dashboard & Reporting
+
+![Admin Manages Complaints](./Video%20walkthrough%20and%20screenshots/admin%20manages%20complaints.png)
+
+The admin dashboard delivers aggregated live metrics from the database on every page load:
+
+| Metric Card | Description |
+|---|---|
+| **Total Complaints** | All complaints ever filed across all residents |
+| **Active Complaints** | Complaints in `OPEN` or `IN_PROGRESS` state |
+| **Pending Notices** | All currently active notice board items |
+| **Overdue Tickets** | Unresolved complaints past the SLA threshold |
+
+**Breakdown Views:**
+- **By Category** — how complaints are distributed across Plumbing, Electrical, Security, Cleaning, Other.
+- **By Priority** — Low / Medium / High distribution for workload triage.
+- **By Status** — OPEN vs IN_PROGRESS live split.
+
+All metrics use SQLAlchemy aggregate queries (`func.count()`, `GROUP BY`) — zero N+1 queries, no separate analytics database needed.
+
+---
+
+## 🗄️ Database Schema, API Design & Documentation
+
+### Database Schema
+
+```sql
+users (
+  id UUID PK, name, email UNIQUE, password_hash [Argon2],
+  role ENUM('ADMIN','RESIDENT'), created_at
+)
+
+complaints (
+  id UUID PK, resident_id FK → users,
+  title, description, category ENUM, priority ENUM,
+  status ENUM('OPEN','IN_PROGRESS','RESOLVED'),
+  photo_path VARCHAR,   -- Supabase relative path only
+  created_at, updated_at
+)
+
+complaint_history (
+  id UUID PK, complaint_id FK → complaints,
+  old_status, new_status, comment, changed_at
+)
+
+notices (
+  id UUID PK, title, content, is_important BOOLEAN, created_at
+)
+
+system_settings (
+  id VARCHAR PK DEFAULT 'default', overdue_days INTEGER DEFAULT 7
+)
+```
+
+### REST API Endpoints
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Public | Register a resident account |
+| `POST` | `/api/auth/login` | Public | Returns JWT access token |
+| `GET` | `/api/auth/me` | Auth | Current user profile |
+| `POST` | `/api/complaints` | Resident | File new complaint + photo upload |
+| `GET` | `/api/complaints` | Auth | List complaints (scoped by role) |
+| `GET` | `/api/complaints/{id}` | Auth | Detail + history + signed photo URL |
+| `PATCH` | `/api/complaints/{id}` | Admin | Update status / priority / comment |
+| `GET` | `/api/notices` | Auth | List all notices |
+| `POST` | `/api/notices` | Admin | Create a notice |
+| `DELETE` | `/api/notices/{id}` | Admin | Delete a notice |
+| `GET` | `/api/admin/dashboard` | Admin | Live aggregated metrics |
+| `GET/PUT` | `/api/settings` | Admin | View/update SLA overdue threshold |
+
+**Design Principles:**
+- JWT Bearer authentication on all protected routes via FastAPI `Depends()` injection.
+- Role guard middleware — admin endpoints return `403 Forbidden` for resident tokens.
+- Pydantic v2 request validation with structured error messages (422 Unprocessable Entity).
+- Consistent HTTP status codes: 200 (OK), 201 (Created), 400 (Bad Request), 401 (Unauthorized), 403 (Forbidden), 404 (Not Found).
+- **Interactive Swagger UI** at [`/api/docs`](https://society-maintenance-tracker-8y4e.onrender.com/api/docs) — every endpoint is testable directly in the browser.
+
+---
+
+
+
 ## 💻 Tech Stack
 
 ```
