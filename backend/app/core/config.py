@@ -2,10 +2,7 @@ import os
 from pydantic_settings import BaseSettings
 
 # Dynamically resolve DATABASE_URL with SQLAlchemy driver requirements
-db_url = os.getenv("DATABASE_URL")
-if not db_url:
-    raise RuntimeError(f"DATABASE_URL is not set in the environment! All environment keys: {list(os.environ.keys())}")
-
+db_url = os.getenv("DATABASE_URL") or "postgresql+psycopg2://postgres:postgres@localhost:5435/society_db"
 if db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
