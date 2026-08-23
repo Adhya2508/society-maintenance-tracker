@@ -1,6 +1,6 @@
 # System Design — Greenview Heights Society Maintenance Tracker
 
-![Architecture Diagram](docs/screenshots/architecture_diagram.jpg)
+![Architecture Diagram](./Video%20walkthrough%20and%20screenshots/architecture%20diagram.png)
 
 ---
 
