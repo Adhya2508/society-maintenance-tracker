@@ -1,6 +1,6 @@
 # System Design — Greenview Heights Society Maintenance Tracker
 
-![Architecture Diagram](./Video%20walkthrough%20and%20screenshots/architecture%20diagram.png)
+![Architecture Diagram](Video%20walkthrough%20and%20screenshots/architecture%20diagram.png)
 
 ---
 
@@ -95,13 +95,13 @@ Photos are stored in **Supabase private cloud storage** — never as PostgreSQL 
 4. Only the **relative path string** is saved in PostgreSQL — no binary data in the DB.
 5. On retrieval, the backend generates a **1-hour signed URL** via Supabase SDK. Expired links auto-deny access.
 
-![Supabase Complaint Images](./Video%20walkthrough%20and%20screenshots/supabase%20complaint%20images.png)
+![Supabase Complaint Images](Video%20walkthrough%20and%20screenshots/supabase%20complaint%20images.png)
 
 **Rollback Safety:** If the PostgreSQL transaction fails after a Supabase upload, FastAPI catches the exception, rolls back the DB change, and fires a Supabase cleanup call to delete the orphaned file — preventing storage bloat.
 
 ### Notice Board Architecture
 
-![Notice Board](./Video%20walkthrough%20and%20screenshots/notice%20board.png)
+![Notice Board](Video%20walkthrough%20and%20screenshots/notice%20board.png)
 
 Admins broadcast society-wide alerts with an `is_important` boolean flag:
 - **Important notices** are pinned to the top of the feed with a high-visibility banner across all resident dashboards.
@@ -131,7 +131,7 @@ When a complaint transitions state, automated email alerts are triggered:
 
 ## 6. Dashboard & Reporting Engine
 
-![Admin Manages Complaints](./Video%20walkthrough%20and%20screenshots/admin%20manages%20complaints.png)
+![Admin Manages Complaints](Video%20walkthrough%20and%20screenshots/admin%20manages%20complaints.png)
 
 The Dashboard delivers high-throughput metrics via aggregated SQL queries:
 

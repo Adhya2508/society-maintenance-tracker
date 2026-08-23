@@ -29,7 +29,7 @@
 
 ## 🏛️ System Architecture
 
-![Architecture Diagram](./Video%20walkthrough%20and%20screenshots/architecture%20diagram.png)
+![Architecture Diagram](Video%20walkthrough%20and%20screenshots/architecture%20diagram.png)
 
 **Modular Monolith Architecture** — Next.js frontend (Vercel) calls a FastAPI backend (Render), which connects to managed PostgreSQL for data, Supabase Storage for complaint photos, and Resend for transactional email notifications.
 
@@ -42,49 +42,49 @@
 ### 1. Modern Landing Page
 A premium, animated community landing page showcasing amenities (pool, gym, sports courts), society stats, and a resident login portal.
 
-![Front Page](./Video%20walkthrough%20and%20screenshots/front%20page.png)
+![Front Page](Video%20walkthrough%20and%20screenshots/front%20page.png)
 
 ---
 
 ### 2. Role-Based Login Portal
 Dual-mode sign-in: choose **Admin** (society management) or **Resident** (my complaints & feed). Demo credentials auto-fill on role selection.
 
-![Login Portal](./Video%20walkthrough%20and%20screenshots/login%20portal.png)
+![Login Portal](Video%20walkthrough%20and%20screenshots/login%20portal.png)
 
 ---
 
 ### 3. Admin Complaint Management Dashboard
 Admins view all society complaints across residents in a filterable table. They can assign priority, change status (`OPEN` → `IN_PROGRESS` → `RESOLVED`), leave resolution comments, and track SLA overdue items highlighted in red.
 
-![Admin Manages Complaints](./Video%20walkthrough%20and%20screenshots/admin%20manages%20complaints.png)
+![Admin Manages Complaints](Video%20walkthrough%20and%20screenshots/admin%20manages%20complaints.png)
 
 ---
 
 ### 4. Resident Complaint Submission & Tracking
 Residents file new complaints with category, priority, description, and optional photo upload. They can track the live status and full resolution history of all their submitted complaints.
 
-![User Complaints](./Video%20walkthrough%20and%20screenshots/user%20complaints.png)
+![User Complaints](Video%20walkthrough%20and%20screenshots/user%20complaints.png)
 
 ---
 
 ### 5. Community Notice Board
 Admins broadcast society-wide announcements. Notices flagged as `Important` are pinned at the top with a high-visibility banner. Residents see all active notices on their dashboard feed.
 
-![Notice Board](./Video%20walkthrough%20and%20screenshots/notice%20board.png)
+![Notice Board](Video%20walkthrough%20and%20screenshots/notice%20board.png)
 
 ---
 
 ### 6. Secure Supabase Cloud Photo Storage
 Complaint photos are securely stored in a private Supabase S3 bucket. The backend generates **1-hour signed URLs** per request — leaked links auto-expire. Photos are never stored inside PostgreSQL.
 
-![Supabase Complaint Images](./Video%20walkthrough%20and%20screenshots/supabase%20complaint%20images.png)
+![Supabase Complaint Images](Video%20walkthrough%20and%20screenshots/supabase%20complaint%20images.png)
 
 ---
 
 ### 7. Automated Email Notifications
 When a complaint's status changes, the resident automatically receives a transactional email via the **Resend API**. Emails are dispatched asynchronously in background threads so the UI never blocks waiting for delivery.
 
-![Timely Email Updates](./Video%20walkthrough%20and%20screenshots/timely%20email%20updates.png)
+![Timely Email Updates](Video%20walkthrough%20and%20screenshots/timely%20email%20updates.png)
 
 ---
 
@@ -123,7 +123,7 @@ Residential societies struggle with:
 
 ## 📊 Dashboard & Reporting
 
-![Admin Manages Complaints](./Video%20walkthrough%20and%20screenshots/admin%20manages%20complaints.png)
+![Admin Manages Complaints](Video%20walkthrough%20and%20screenshots/admin%20manages%20complaints.png)
 
 The admin dashboard delivers aggregated live metrics from the database on every page load:
 
