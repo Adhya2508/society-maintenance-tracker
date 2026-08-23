@@ -64,8 +64,8 @@ def create_complaint(db: Session, payload: ComplaintCreate, resident_id: str) ->
             <p><strong>Priority:</strong> {pri_val}</p>
             <p><strong>Description:</strong> {complaint.description}</p>
             """
-            from app.modules.notifications.tasks import dispatch_email_notification
-            dispatch_email_notification.delay(notif_res_id, resident.email, subject_res, body_res)
+            from app.modules.notifications.service import send_notification_email_async
+            send_notification_email_async(notif_res_id, resident.email, subject_res, body_res)
 
             # Email to Admin
             admin = db.query(User).filter(User.role == 'ADMIN').first()
@@ -93,7 +93,7 @@ def create_complaint(db: Session, payload: ComplaintCreate, resident_id: str) ->
                 <hr/>
                 <p>Please log in to the admin portal to manage this ticket.</p>
                 """
-                dispatch_email_notification.delay(notif_admin_id, admin.email, subject_admin, body_admin)
+                send_notification_email_async(notif_admin_id, admin.email, subject_admin, body_admin)
     except Exception as exc:
         print(f"Error sending complaint creation emails: {exc}")
 
@@ -154,8 +154,8 @@ def update_complaint_status(db: Session, complaint_id: str, payload: StatusUpdat
             <hr/>
             <p>Login to your resident dashboard to view live updates.</p>
             """
-            from app.modules.notifications.tasks import dispatch_email_notification
-            dispatch_email_notification.delay(notif_id, resident.email, subject, html_body)
+            from app.modules.notifications.service import send_notification_email_async
+            send_notification_email_async(notif_id, resident.email, subject, html_body)
     except Exception as exc:
         print(f"Error queueing email notification: {exc}")
 
