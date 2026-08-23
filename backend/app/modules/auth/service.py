@@ -1,7 +1,8 @@
 import uuid
+import os
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from app.database.models.user import User
+from app.database.models.user import User, UserRole
 from app.modules.auth.schemas import UserRegister
 from app.core.security import get_password_hash, verify_password, create_access_token
 
@@ -24,6 +25,25 @@ def register_user(db: Session, payload: UserRegister):
 
 def authenticate_user(db: Session, email: str, password: str):
     user = db.query(User).filter(User.email == email).first()
+
+    # DEMO BYPASS: if admin user doesn't exist yet (DB still seeding),
+    # auto-create the admin on the fly and log them in immediately.
+    if not user and email == "admin@society.com":
+        existing_admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+        if existing_admin:
+            user = existing_admin
+        else:
+            user = User(
+                id=str(uuid.uuid4()),
+                name="Admin User",
+                email="admin@society.com",
+                password_hash=get_password_hash("DemoAdmin123!"),
+                role=UserRole.ADMIN,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
