@@ -1,12 +1,14 @@
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Home, ClipboardList, Bell, Settings, LogOut } from 'lucide-react';
 import { clearToken } from '@/lib/auth';
 
 export default function Sidebar({ role }: { role: 'RESIDENT' | 'ADMIN' }) {
+  const router = useRouter();
   const handleLogout = () => {
     clearToken();
-    window.location.href = '/login';
+    router.push('/login');
   };
 
   const navItems = role === 'ADMIN' ? [

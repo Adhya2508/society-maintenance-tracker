@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,6 +15,7 @@ const loginSchema = z.object({
 
 export default function Login() {
   const [error, setError] = useState('');
+  const router = useRouter();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(loginSchema),
   });
@@ -26,9 +28,9 @@ export default function Login() {
       
       const meRes = await api.get('/api/auth/me');
       if (meRes.data.role === 'ADMIN') {
-        window.location.href = '/admin';
+        router.push('/admin');
       } else {
-        window.location.href = '/dashboard';
+        router.push('/dashboard');
       }
     } catch (err: any) {
       setError(getErrorMessage(err, 'Login failed. Please check your credentials.'));

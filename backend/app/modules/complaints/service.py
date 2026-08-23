@@ -46,7 +46,13 @@ def create_complaint(db: Session, payload: ComplaintCreate, resident_id: str) ->
             
             # Email to Resident
             notif_res_id = str(uuid.uuid4())
-            db.add(Notification(id=notif_res_id, type="NEW_COMPLAINT", recipient_id=resident.id, status="PENDING"))
+            db.add(Notification(
+                id=notif_res_id,
+                type="NEW_COMPLAINT",
+                recipient_id=resident.id,
+                status="PENDING",
+                idempotency_key=f"NEW_COMPLAINT:{complaint.id}:{resident.id}"
+            ))
             db.commit()
 
             subject_res = f"Complaint Received: {complaint.complaint_number}"
@@ -65,7 +71,13 @@ def create_complaint(db: Session, payload: ComplaintCreate, resident_id: str) ->
             admin = db.query(User).filter(User.role == 'ADMIN').first()
             if admin and admin.email:
                 notif_admin_id = str(uuid.uuid4())
-                db.add(Notification(id=notif_admin_id, type="ADMIN_ALERT", recipient_id=admin.id, status="PENDING"))
+                db.add(Notification(
+                    id=notif_admin_id,
+                    type="ADMIN_ALERT",
+                    recipient_id=admin.id,
+                    status="PENDING",
+                    idempotency_key=f"ADMIN_ALERT:{complaint.id}:{admin.id}"
+                ))
                 db.commit()
 
                 photo_html = f'<p><strong>Attached Photo:</strong><br/><img src="{complaint.photo_url}" style="max-width:400px; border-radius:8px;" /></p>' if complaint.photo_url else ''

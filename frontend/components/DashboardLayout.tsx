@@ -1,22 +1,24 @@
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 
 export default function DashboardLayout({ children, roleRequired }: { children: React.ReactNode, roleRequired: 'RESIDENT' | 'ADMIN' }) {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const res = await api.get('/api/auth/me');
         if (res.data.role !== roleRequired) {
-          window.location.href = res.data.role === 'ADMIN' ? '/admin' : '/dashboard';
+          router.push(res.data.role === 'ADMIN' ? '/admin' : '/dashboard');
         } else {
           setAuthorized(true);
         }
       } catch (error) {
-        window.location.href = '/login';
+        router.push('/login');
       } finally {
         setLoading(false);
       }

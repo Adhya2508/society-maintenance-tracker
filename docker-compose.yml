@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: society_postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -19,6 +20,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: society_redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -30,6 +32,7 @@ services:
   api:
     build: ./backend
     container_name: society_api
+    restart: unless-stopped
     ports:
       - "8002:8000"
     volumes:
@@ -52,6 +55,7 @@ services:
   worker:
     build: ./backend
     container_name: society_worker
+    restart: unless-stopped
     command: celery -A app.infrastructure.celery.celery_app worker --loglevel=info
     volumes:
       - ./backend:/app

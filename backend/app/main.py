@@ -1,21 +1,27 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+import redis as redis_client
+import os
+
 from app.modules.auth.router import router as auth_router
 from app.modules.complaints.router import router as complaints_router
 from app.modules.dashboard.router import router as dashboard_router
 from app.modules.notices.router import router as notices_router
 from app.modules.settings.router import router as settings_router
 from app.database.session import get_db
-from fastapi import Depends
-from sqlalchemy.orm import Session
-import redis as redis_client
-import os
 
 app = FastAPI(title="Society Maintenance Tracker API", docs_url="/api/docs", redoc_url="/api/redoc")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ],
+    allow_origin_regex=r"http://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

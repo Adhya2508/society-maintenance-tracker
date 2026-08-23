@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,7 +10,9 @@ import { ArrowLeft, UploadCloud, X, Loader2, Check } from 'lucide-react';
 import Link from 'next/link';
 
 const complaintSchema = z.object({
-  category: z.enum(['PLUMBING', 'ELECTRICAL', 'CLEANING', 'SECURITY', 'PARKING', 'OTHER']),
+  category: z.enum(['PLUMBING', 'ELECTRICAL', 'CLEANING', 'SECURITY', 'PARKING', 'OTHER'], {
+    required_error: 'Please select a category',
+  }),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']),
   description: z.string().min(10, 'Description must be at least 10 characters').max(2000),
   photo_url: z.string().optional(),
@@ -21,11 +24,14 @@ export default function NewComplaint() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(complaintSchema),
     defaultValues: {
-      priority: 'MEDIUM',
+      category: 'PLUMBING' as const,
+      priority: 'MEDIUM' as const,
+      description: '',
     }
   });
 
@@ -47,29 +53,46 @@ export default function NewComplaint() {
   const onSubmit = async (data: any) => {
     try {
       setError('');
-      let uploadedUrl = data.photo_url;
+      let uploadedPath = data.photo_url;
 
-      // If a local image file was picked, upload it to /api/upload first
+      // Step 1: Upload photo to Supabase via backend if one was selected
       if (selectedFile) {
         setUploading(true);
         const formData = new FormData();
         formData.append('file', selectedFile);
-        const uploadRes = await api.post('/api/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        uploadedUrl = uploadRes.data.url;
+        // Do NOT set Content-Type manually — Axios sets multipart boundary automatically
+        const uploadRes = await api.post('/api/upload', formData);
+        uploadedPath = uploadRes.data.storage_path || uploadRes.data.url;
         setUploading(false);
       }
 
+      // Step 2: Create complaint record with optional photo path
       await api.post('/api/complaints', {
-        ...data,
-        photo_url: uploadedUrl || undefined,
+        category: data.category,
+        priority: data.priority,
+        description: data.description,
+        photo_url: uploadedPath || undefined,
       });
 
-      window.location.href = '/complaints';
+      router.push('/complaints');
     } catch (err: any) {
       setUploading(false);
-      setError(getErrorMessage(err, 'Failed to submit complaint'));
+      const status = err?.response?.status;
+      if (!err?.response) {
+        setError('Unable to connect to the server. Is the backend running on port 8002?');
+      } else if (status === 401) {
+        setError('Session expired. Please log in again.');
+      } else if (status === 403) {
+        setError('You do not have permission to submit complaints.');
+      } else if (status === 413) {
+        setError('Photo is too large. Please use an image under 5MB.');
+      } else if (status === 422 || status === 400) {
+        setError(getErrorMessage(err, 'Invalid form data. Please check your inputs.'));
+      } else if (status >= 500) {
+        setError(getErrorMessage(err, 'Server error. Please try again in a moment.'));
+      } else {
+        setError(getErrorMessage(err, 'Failed to submit complaint.'));
+      }
     }
   };
 
@@ -88,7 +111,7 @@ export default function NewComplaint() {
           </div>
           
           <div className="p-6 md:p-8">
-            {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm">{error}</div>}
+            {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm font-medium">{error}</div>}
             
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -98,7 +121,6 @@ export default function NewComplaint() {
                     {...register('category')}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand focus:outline-none bg-white"
                   >
-                    <option value="">Select Category...</option>
                     <option value="PLUMBING">Plumbing</option>
                     <option value="ELECTRICAL">Electrical</option>
                     <option value="CLEANING">Cleaning</option>
@@ -129,7 +151,7 @@ export default function NewComplaint() {
                   {...register('description')}
                   rows={4}
                   className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-brand focus:outline-none resize-none"
-                  placeholder="Describe the issue in detail..."
+                  placeholder="Describe the issue in detail (at least 10 characters)..."
                 ></textarea>
                 {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message as string}</p>}
               </div>
@@ -158,7 +180,7 @@ export default function NewComplaint() {
                           Click to upload an image
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, JPEG up to 10MB</p>
+                      <p className="text-xs text-gray-500">PNG, JPG, JPEG up to 5MB</p>
                     </div>
                   </div>
                 ) : (
@@ -189,7 +211,7 @@ export default function NewComplaint() {
                   className="bg-brand py-2.5 px-6 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand disabled:opacity-50 flex items-center gap-2"
                 >
                   {(isSubmitting || uploading) && <Loader2 size={16} className="animate-spin" />}
-                  {uploading ? 'Uploading image...' : isSubmitting ? 'Submitting...' : 'Submit Complaint'}
+                  {uploading ? 'Uploading photo to Supabase...' : isSubmitting ? 'Submitting...' : 'Submit Complaint'}
                 </button>
               </div>
             </form>
