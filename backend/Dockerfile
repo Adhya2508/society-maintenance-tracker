@@ -17,5 +17,5 @@ COPY . .
 
 EXPOSE 8000
 
-# Command to run migrations and start uvicorn
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Command to run migrations, auto-seed if empty, and start uvicorn
+CMD ["sh", "-c", "alembic upgrade head && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

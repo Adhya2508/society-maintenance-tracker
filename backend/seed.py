@@ -188,13 +188,21 @@ def seed_notices():
     print(f"✓ {len(notices)} notices seeded (2 important)")
 
 if __name__ == "__main__":
-    print("🌱 Seeding database...")
-    wipe()
-    seed_settings()
-    admin, residents = seed_users()
-    seed_complaints(admin, residents)
-    seed_notices()
+    force_wipe = "--force" in sys.argv
+    user_count = db.query(User).count()
+
+    if force_wipe or user_count == 0:
+        if force_wipe:
+            print("⚠️ Force wipe requested!")
+            wipe()
+        print("🌱 Seeding initial database records...")
+        seed_settings()
+        admin, residents = seed_users()
+        seed_complaints(admin, residents)
+        seed_notices()
+        print("\n✅ Seed complete!")
+        print("   Admin:    admin@society.com / DemoAdmin123!")
+        print("   Resident: ravi@society.com  / DemoResident123!")
+    else:
+        print(f"ℹ️ Database already initialized with {user_count} users. Skipping seed.")
     db.close()
-    print("\n✅ Seed complete!")
-    print("   Admin:    admin@society.com / DemoAdmin123!")
-    print("   Resident: ravi@society.com  / DemoResident123!")
