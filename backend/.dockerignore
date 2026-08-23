@@ -1,0 +1,17 @@
+# Never bake local secrets into the Docker image
+.env
+.env.local
+.env.*.local
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
